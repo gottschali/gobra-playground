@@ -98,6 +98,10 @@ func TestVerifies(t *testing.T) {
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := server.Client().Do(r)
 
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected statuscode 200 but got %d", resp.StatusCode)
+	}
+
 	defer resp.Body.Close()
 	parsed := new(VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
@@ -117,7 +121,7 @@ func TestVerifiesFail(t *testing.T) {
 	defer server.Close()
 	data := url.Values{}
 	data.Set("version", "1.0")
-	data.Set("body", "package main\nassert false")
+	data.Set("body", "package main\nassert false\n")
 	r, _ := http.NewRequest(
 		"POST",
 		server.URL,
@@ -127,12 +131,16 @@ func TestVerifiesFail(t *testing.T) {
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := server.Client().Do(r)
 
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected statuscode 200 but got %d", resp.StatusCode)
+	}
+
 	defer resp.Body.Close()
 	parsed := new(VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &parsed)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("Unmarhalling body failed: %s", err)
 	}
 	if parsed.Verified {
 		t.Errorf("Wrong response: test should not have verified")
@@ -157,7 +165,7 @@ func TestWrongEncoding(t *testing.T) {
 	resp, _ := server.Client().Do(r)
 
 	if resp.StatusCode < 400 {
-		t.Errorf("no error code when field body is missing")
+		t.Fatalf("no error code when field body is missing")
 	}
 
 }
@@ -179,7 +187,7 @@ func TestInvalidResponse(t *testing.T) {
 	resp, _ := server.Client().Do(r)
 
 	if resp.StatusCode < 400 {
-		t.Errorf("no error code when data is not urlencoded ")
+		t.Fatalf("no error code when data is not urlencoded ")
 	}
 
 }
