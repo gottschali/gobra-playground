@@ -1,6 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"strings"
 	"testing"
 )
 
@@ -51,4 +59,58 @@ func TestFailDetected(t *testing.T) {
 	if resp.MainError.ErrorMessage != "Assertion x != MinInt might not hold." {
 		t.Fatalf("Failed to parse error message, got %s", resp.MainError.ErrorMessage)
 	}
+}
+
+func TestHealthcheck(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(Hello))
+	defer server.Close()
+	resp, err := http.Get(server.URL)
+	if err != nil {
+		t.Errorf("Healthcheck failed: %s", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	if !strings.Contains(safeString(body), "Gobra") {
+		t.Errorf("response does not contain Gobra")
+	}
+}
+
+func TestVerifies(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(Verify))
+	defer server.Close()
+
+	path := "./tests/tutorial/basicAnnotations.gobra"
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Errorf("Test file does not exist: %s", err)
+	}
+	code := safeString(contents)
+	fmt.Println(code)
+	data := url.Values{}
+	data.Set("version", "1.0")
+	data.Set("body", code)
+	r, _ := http.NewRequest(
+		"POST",
+		server.URL,
+		strings.NewReader(data.Encode()),
+	)
+	r.Header.Add("Accept", "application/json")
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	fmt.Println(r)
+	resp, err := server.Client().Do(r)
+
+	defer resp.Body.Close()
+	parsed := new(VerificationResponse)
+	body, err := io.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &parsed)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !parsed.Verified {
+		t.Errorf("test should have verified: %s", path)
+	}
+
 }
