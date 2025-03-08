@@ -6,7 +6,7 @@ COPY *.go ./
 RUN go build
 
 FROM ghcr.io/viperproject/gobra:latest
-COPY --from=builder /app/vaas /opt/vaas/server
+COPY --from=builder /app/gobra-playground /opt/gobra-playground/server
 
 EXPOSE 8090
-ENTRYPOINT [ "/opt/vaas/server" ]
+ENTRYPOINT [ "/opt/gobra-playground/server" ]

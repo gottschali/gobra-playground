@@ -1,4 +1,4 @@
-module gobruh/vaas
+module gobruh/gobra-playground
 
 go 1.22.3
 
