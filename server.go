@@ -45,6 +45,7 @@ type VerificationError struct {
 // where stats
 type VerificationResponse struct {
 	Verified  bool              `json:"verified"`
+	Timeout   bool              `json:"timeout"`
 	MainError VerificationError `json:"mainError"`
 	// output: list[error string] `json:"output"`
 	Duration float64 `json:"duration"`
@@ -58,9 +59,13 @@ var port = os.Getenv("PORT")
 
 func Verify(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
-
 	// https://stackoverflow.com/questions/15407719/in-gos-http-package-how-do-i-get-the-query-string-on-a-post-request
-	req.ParseForm()
+	err := req.ParseForm()
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
 	body := req.Form.Get("body")
 	// TODO: allow more options
 	// probably as json in options form field
@@ -90,7 +95,9 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 	input_path := temp_dir + "/input.gobra"
 	err = os.WriteFile(input_path, []byte(body), 0644)
 	if err != nil {
-		fmt.Println("Failed to write verification resutls to ", input_path)
+		fmt.Println("failed to write gobra file", input_path)
+		http.Error(w, "internal error", 500)
+		return
 	}
 
 	java_args := []string{java_path, "-jar", "-Xss128m"}
@@ -98,6 +105,7 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 	args := append(java_args, gobra_args...)
 
 	done := make(chan int)
+	errors := make(chan error)
 
 	var outbuf, errbuf strings.Builder
 
@@ -110,24 +118,18 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 	}
 
 	go func() {
-		// TODO proper error responses
 		start := time.Now()
+
 		if err := cmd.Start(); err != nil {
-			fmt.Println("Error starting command", err)
+			errors <- fmt.Errorf("Error starting command: %s", err)
 			return
 		}
-
-		// fmt.Println(cmd.Env, gobra_path, java_path)
-
-		if err := cmd.Wait(); err != nil {
-			fmt.Println("Error waiting for the command:", err)
-			return
-		}
+		cmd.Wait()
 		elapsed := time.Since(start)
 
 		dat, err := os.ReadFile(temp_dir + "/stats.json")
 		if err != nil {
-			fmt.Println("Failed to read stats.json", err)
+			errors <- fmt.Errorf("Failed to read stats.json, %s", err)
 			return
 		}
 		stats := safeString(dat)
@@ -143,7 +145,8 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 		resp, err := ParseGobraOutput(stdout)
 		resp.Duration = elapsed.Seconds()
 		if err != nil {
-			fmt.Errorf("Error parsing output: %e", err)
+			errors <- fmt.Errorf("Error parsing output: %e", err)
+			return
 		}
 		if dev {
 			fmt.Println(resp)
@@ -152,20 +155,27 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 
 		data, err := json.Marshal(resp)
 		if err != nil {
-			fmt.Errorf("Error marshalling the response to json: %e", err)
+			errors <- fmt.Errorf("Error marshalling the response to json: %e", err)
+			return
 		}
 		w.Write(data)
-
 		done <- 1
-		close(done)
 	}()
-	// <-done
+	const timeout = 10 * time.Second
 	select {
-	case <-time.After(10 * time.Second):
+	case <-time.After(timeout):
 		fmt.Println("timed out")
 		cmd.Process.Kill() // TODO
+		resp := VerificationResponse{
+			Timeout:  true,
+			Duration: timeout.Seconds(),
+		}
+		data, _ := json.Marshal(resp)
+		w.Write(data)
+	case err := <-errors:
+		fmt.Printf("internal error: %s\n", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
 	case <-done:
-		fmt.Println("Goroutine is done")
 	}
 
 }
