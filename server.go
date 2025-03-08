@@ -198,7 +198,8 @@ func main() {
 	http.HandleFunc("/hello", hello)
 	http.HandleFunc("/verify", verify)
 	http.HandleFunc("/headers", headers)
-	http.Handle("/compile2", playground.Proxy())
+	playground.Proxy() // /compile
+	// http.Handle("/compile2", playground.Proxy())
 
 	PORT := ":8090"
 	fmt.Println("Running on http://localhost", PORT)
