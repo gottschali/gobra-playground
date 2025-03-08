@@ -76,79 +76,77 @@ func TestHealthcheck(t *testing.T) {
 	}
 }
 
-func TestVerifies(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-
-	path := "./tests/tutorial/basicAnnotations.gobra"
+func readTest(path string, t *testing.T) string {
 	contents, err := os.ReadFile(path)
 	if err != nil {
 		t.Errorf("Test file does not exist: %s", err)
 	}
-	code := safeString(contents)
+	return safeString(contents)
+}
+
+type VerificationServer struct {
+	server *httptest.Server
+}
+
+func MakeServer() VerificationServer {
+	r := VerificationServer{httptest.NewServer(http.HandlerFunc(Verify))}
+	return r
+}
+
+func (s VerificationServer) submit(code string) (*VerificationResponse, error) {
 	data := url.Values{}
 	data.Set("version", "1.0")
 	data.Set("body", code)
 	r, _ := http.NewRequest(
 		"POST",
-		server.URL,
+		s.server.URL,
 		strings.NewReader(data.Encode()),
 	)
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := server.Client().Do(r)
-
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected statuscode 200 but got %d", resp.StatusCode)
-	}
+	resp, err := s.server.Client().Do(r)
 
 	defer resp.Body.Close()
 	parsed := new(VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &parsed)
 	if err != nil {
-		t.Error(err)
+		return nil, err
 	}
+	return parsed, nil
+}
 
-	if !parsed.Verified {
+func TestVerifies(t *testing.T) {
+	s := MakeServer()
+	defer s.server.Close()
+	path := "./tests/tutorial/basicAnnotations.gobra"
+	code := readTest(path, t)
+	resp, err := s.submit(code)
+	if err != nil {
+		t.Fatalf("error submitting code: %s", err)
+	}
+	if !resp.Verified {
 		t.Errorf("Wrong response: test should have verified: %s", path)
 	}
-
 }
 
 func TestVerifiesFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-	data := url.Values{}
-	data.Set("version", "1.0")
-	data.Set("body", "package main\nassert false\n")
-	r, _ := http.NewRequest(
-		"POST",
-		server.URL,
-		strings.NewReader(data.Encode()),
-	)
-	r.Header.Add("Accept", "application/json")
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := server.Client().Do(r)
-
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Expected statuscode 200 but got %d", resp.StatusCode)
-	}
-
-	defer resp.Body.Close()
-	parsed := new(VerificationResponse)
-	body, err := io.ReadAll(resp.Body)
-	err = json.Unmarshal(body, &parsed)
+	s := MakeServer()
+	defer s.server.Close()
+	path := "./tests/error/array-length-fail2.gobra"
+	code := readTest(path, t)
+	resp, err := s.submit(code)
 	if err != nil {
-		t.Errorf("Unmarhalling body failed: %s", err)
+		t.Fatalf("error submitting code: %s", err)
 	}
-	if parsed.Verified {
+
+	if resp.Verified {
 		t.Errorf("Wrong response: test should not have verified")
 	}
 
 }
 
-func TestWrongEncoding(t *testing.T) {
+func TestNoContentType(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(Verify))
 	defer server.Close()
 
@@ -165,12 +163,12 @@ func TestWrongEncoding(t *testing.T) {
 	resp, _ := server.Client().Do(r)
 
 	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when field body is missing")
+		t.Fatalf("no error code when data is not urlencoded ")
 	}
 
 }
 
-func TestInvalidResponse(t *testing.T) {
+func TestMissingBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(Verify))
 	defer server.Close()
 
@@ -187,7 +185,7 @@ func TestInvalidResponse(t *testing.T) {
 	resp, _ := server.Client().Do(r)
 
 	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when data is not urlencoded ")
+		t.Fatalf("no error code when field body is missing")
 	}
 
 }
