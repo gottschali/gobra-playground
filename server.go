@@ -84,6 +84,7 @@ func verify(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		fmt.Println("Failed to create a temporary directory.")
 	}
+	defer os.RemoveAll(temp_dir)
 
 	// https://gobyexample.com/writing-files
 	input_path := temp_dir + "/input.gobra"
@@ -155,7 +156,6 @@ func verify(w http.ResponseWriter, req *http.Request) {
 		}
 		w.Write(data)
 
-		defer os.RemoveAll(temp_dir)
 		done <- 1
 		close(done)
 	}()
