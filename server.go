@@ -56,7 +56,7 @@ var gobra_path = os.Getenv("GOBRA_PATH")
 var java_path = os.Getenv("JAVA_PATH")
 var port = os.Getenv("PORT")
 
-func verify(w http.ResponseWriter, req *http.Request) {
+func Verify(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	// https://stackoverflow.com/questions/15407719/in-gos-http-package-how-do-i-get-the-query-string-on-a-post-request
@@ -171,8 +171,22 @@ func verify(w http.ResponseWriter, req *http.Request) {
 }
 
 // healthcheck
-func hello(w http.ResponseWriter, req *http.Request) {
+func Hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "Welcome to the Gobra Playground\n")
+}
+
+func start() {
+	http.HandleFunc("/hello", Hello)
+	http.HandleFunc("/verify", Verify)
+	playground.Proxy() // /compile
+	// http.Handle("/compile2", playground.Proxy())
+
+	fmt.Println("Starting server on http://localhost:", port)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		fmt.Println(`ERROR: Failed to start the server.
+Check if the port is already in use.`)
+	}
 }
 
 func main() {
@@ -188,22 +202,11 @@ func main() {
 	}
 	if dev {
 		fmt.Println("Running in dev mode")
-		fmt.Println("JAVA_PATH=%s", java_path)
-		fmt.Println("GOBRA_PATH=%s", gobra_path)
+		fmt.Printf("JAVA_PATH=%s\n", java_path)
+		fmt.Printf("GOBRA_PATH=%s\n", gobra_path)
 	}
 	if port == "" {
 		port = "8090"
 	}
-
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/verify", verify)
-	playground.Proxy() // /compile
-	// http.Handle("/compile2", playground.Proxy())
-
-	fmt.Println("Starting server on http://localhost:", port)
-	err := http.ListenAndServe(":"+port, nil)
-	if err != nil {
-		fmt.Println(`ERROR: Failed to start the server.
-Check if the port is already in use.`)
-	}
+	start()
 }
