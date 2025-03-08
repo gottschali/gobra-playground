@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -87,7 +86,6 @@ func TestVerifies(t *testing.T) {
 		t.Errorf("Test file does not exist: %s", err)
 	}
 	code := safeString(contents)
-	fmt.Println(code)
 	data := url.Values{}
 	data.Set("version", "1.0")
 	data.Set("body", code)
@@ -98,7 +96,6 @@ func TestVerifies(t *testing.T) {
 	)
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	fmt.Println(r)
 	resp, err := server.Client().Do(r)
 
 	defer resp.Body.Close()
@@ -110,7 +107,79 @@ func TestVerifies(t *testing.T) {
 	}
 
 	if !parsed.Verified {
-		t.Errorf("test should have verified: %s", path)
+		t.Errorf("Wrong response: test should have verified: %s", path)
+	}
+
+}
+
+func TestVerifiesFail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(Verify))
+	defer server.Close()
+	data := url.Values{}
+	data.Set("version", "1.0")
+	data.Set("body", "package main\nassert false")
+	r, _ := http.NewRequest(
+		"POST",
+		server.URL,
+		strings.NewReader(data.Encode()),
+	)
+	r.Header.Add("Accept", "application/json")
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := server.Client().Do(r)
+
+	defer resp.Body.Close()
+	parsed := new(VerificationResponse)
+	body, err := io.ReadAll(resp.Body)
+	err = json.Unmarshal(body, &parsed)
+	if err != nil {
+		t.Error(err)
+	}
+	if parsed.Verified {
+		t.Errorf("Wrong response: test should not have verified")
+	}
+
+}
+
+func TestWrongEncoding(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(Verify))
+	defer server.Close()
+
+	// required field body is missing
+	data := url.Values{}
+	data.Set("version", "1.0")
+	data.Set("body", "package main\nassert true")
+	r, _ := http.NewRequest(
+		"POST",
+		server.URL,
+		strings.NewReader(data.Encode()),
+	)
+	r.Header.Add("Accept", "application/json")
+	resp, _ := server.Client().Do(r)
+
+	if resp.StatusCode < 400 {
+		t.Errorf("no error code when field body is missing")
+	}
+
+}
+
+func TestInvalidResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(Verify))
+	defer server.Close()
+
+	// required field body is missing
+	data := url.Values{}
+	data.Set("version", "1.0")
+	r, _ := http.NewRequest(
+		"POST",
+		server.URL,
+		strings.NewReader(data.Encode()),
+	)
+	r.Header.Add("Accept", "application/json")
+	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	resp, _ := server.Client().Do(r)
+
+	if resp.StatusCode < 400 {
+		t.Errorf("no error code when data is not urlencoded ")
 	}
 
 }
