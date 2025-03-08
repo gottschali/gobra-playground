@@ -76,8 +76,9 @@ type VerificationResponse struct {
 }
 
 var dev = os.Getenv("DEV")
-var gobra_path string
-var java_path = "java"
+var gobra_path = os.Getenv("GOBRA_PATH")
+var java_path = os.Getenv("JAVA_PATH")
+var port = os.Getenv("PORT")
 
 func verify(w http.ResponseWriter, req *http.Request) {
 
@@ -189,10 +190,18 @@ func main() {
 	// http.Handle("/static/", http.StripPrefix("/static/", http.FileServer())))
 
 	if dev != "" {
-		gobra_path = "/home/ali/Code/gobra.jar"
-		java_path = "/usr/bin/java"
-	} else {
-		gobra_path = "/gobra/gobra.jar"
+		fmt.Println("Running in dev mode")
+	}
+	if java_path == "" {
+		fmt.Println("ERROR: JAVA_PATH environment variable must be set")
+		return
+	}
+	if gobra_path == "" {
+		fmt.Println("ERROR: GOBRA_PATH environment variable must be set")
+		return
+	}
+	if port == "" {
+		port = "8090"
 	}
 
 	http.HandleFunc("/hello", hello)
@@ -201,7 +210,10 @@ func main() {
 	playground.Proxy() // /compile
 	// http.Handle("/compile2", playground.Proxy())
 
-	PORT := ":8090"
-	fmt.Println("Running on http://localhost", PORT)
-	http.ListenAndServe(PORT, nil)
+	fmt.Println("Starting server on http://localhost:", port)
+	err := http.ListenAndServe(":"+port, nil)
+	if err != nil {
+		fmt.Println(`ERROR: Failed to start the server.
+Check if the port is already in use.`)
+	}
 }
