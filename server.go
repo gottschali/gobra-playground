@@ -1,56 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/gottschali/gobra-playground/lib/parser"
+	"github.com/gottschali/gobra-playground/lib/util"
+	"golang.org/x/tools/playground"
 	"net/http"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
-	"unicode/utf8"
-
-	"golang.org/x/tools/playground"
 )
-
-// returns b as a valid UTF-8 string.
-func safeString(b []byte) string {
-	if utf8.Valid(b) {
-		return string(b)
-	}
-	var buf bytes.Buffer
-	for len(b) > 0 {
-		r, size := utf8.DecodeRune(b)
-		b = b[size:]
-		buf.WriteRune(r)
-	}
-	return buf.String()
-}
-
-// TODO I think there is only the start in the error message
-// for the exact position we need to look at stat.json?
-type Position struct {
-	StartLine int `json:"startLine"`
-	EndLine   int `json:"endLine"`
-	StartPos  int `json:"startPos"`
-	EndPos    int `json:"endPos"`
-}
-
-type VerificationError struct {
-	ErrorMessage string   `json:"errorMessage"`
-	Position     Position `json:"Position"`
-}
-
-// where stats
-type VerificationResponse struct {
-	Verified  bool              `json:"verified"`
-	Timeout   bool              `json:"timeout"`
-	MainError VerificationError `json:"mainError"`
-	// output: list[error string] `json:"output"`
-	Duration float64 `json:"duration"`
-	Stats    string  `json:"stats"`
-}
 
 var dev = os.Getenv("DEV") != ""
 var gobra_path = os.Getenv("GOBRA_PATH")
@@ -71,9 +32,9 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 		errors <- fmt.Errorf("Failed to read stats.json, %s", err)
 		return
 	}
-	stats := safeString(dat)
+	stats := util.SafeString(dat)
 
-	resp, err := ParseGobraOutput(safeString(stdout))
+	resp, err := parser.ParseGobraOutput(util.SafeString(stdout))
 	if err != nil {
 		errors <- fmt.Errorf("Error parsing output: %e", err)
 		return
@@ -160,7 +121,7 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 	case <-time.After(timeout):
 		fmt.Println("timed out")
 		cmd.Process.Kill()
-		resp := VerificationResponse{
+		resp := parser.VerificationResponse{
 			Timeout:  true,
 			Duration: timeout.Seconds(),
 		}

@@ -1,4 +1,4 @@
-module gobruh/gobra-playground
+module github.com/gottschali/gobra-playground
 
 go 1.22.3
 

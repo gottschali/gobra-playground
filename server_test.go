@@ -6,59 +6,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
+
+	"github.com/gottschali/gobra-playground/lib/parser"
+	"github.com/gottschali/gobra-playground/lib/util"
 )
-
-var successOutput = `Gobra 1.1-SNAPSHOT (46a35ffb@(detached))
-(c) Copyright ETH Zurich 2012 - 2024
-14:21:12.006 [main] INFO viper.gobra.Gobra - Verifying package /home/anonymous/Code/gobra-book-monorepo/scratch - bank [14:21:12]
-14:21:15.583 [thread-5] INFO viper.gobra.Gobra - Gobra found no errors
-14:21:15.583 [main] INFO viper.gobra.Gobra - Gobra has found 0 error(s)
-14:21:15.604 [Thread-0] INFO viper.gobra.Gobra - Writing report to .gobra/stats.json`
-
-var failedOutput = `Gobra 1.1-SNAPSHOT (46a35ffb@(detached))
-(c) Copyright ETH Zurich 2012 - 2024
-14:50:32.055 [main] INFO viper.gobra.Gobra - Verifying package /home/anonymous/Code/gobra-book-monorepo/scratch - main [14:50:32]
-14:50:35.387 [ForkJoinPool-3-worker-2] ERROR viper.gobra.reporting.FileWriterReporter - Error at: <abs.go:29:8> Precondition of call Abs(MinInt) might not hold.
-Assertion x != MinInt might not hold.
-14:50:35.403 [thread-2] ERROR viper.gobra.Gobra - Gobra has found 1 error(s) in package /home/anonymous/Code/gobra-book-monorepo/scratch - main
-14:50:35.403 [main] INFO viper.gobra.Gobra - Gobra has found 1 error(s)
-14:50:35.427 [Thread-0] INFO viper.gobra.Gobra - Writing report to .gobra/stats.json
-java -jar -Xss1g /home/anonymous/Code/gobra.jar -i abs.go`
-
-func TestVerified(t *testing.T) {
-	resp, err := ParseGobraOutput(successOutput)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !resp.Verified {
-		t.Fatal("Failed to parse that verification succeeded")
-	}
-
-	if resp.MainError.ErrorMessage != "" {
-		t.Fatal("There is an error message when there should be none")
-	}
-}
-
-func TestFailDetected(t *testing.T) {
-	resp, err := ParseGobraOutput(failedOutput)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if resp.Verified {
-		t.Fatal("Failed to parse that verification failed")
-	}
-
-	if resp.MainError.ErrorMessage != "Assertion x != MinInt might not hold." {
-		t.Fatalf("Failed to parse error message, got %s", resp.MainError.ErrorMessage)
-	}
-}
 
 func TestHealthcheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(Hello))
@@ -71,17 +24,9 @@ func TestHealthcheck(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !strings.Contains(safeString(body), "Gobra") {
+	if !strings.Contains(util.SafeString(body), "Gobra") {
 		t.Errorf("response does not contain Gobra")
 	}
-}
-
-func readTest(path string, t *testing.T) string {
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		t.Errorf("Test file does not exist: %s", err)
-	}
-	return safeString(contents)
 }
 
 type VerificationServer struct {
@@ -93,7 +38,7 @@ func MakeServer() VerificationServer {
 	return r
 }
 
-func (s VerificationServer) submit(code string) (*VerificationResponse, error) {
+func (s VerificationServer) submit(code string) (*parser.VerificationResponse, error) {
 	data := url.Values{}
 	data.Set("version", "1.0")
 	data.Set("body", code)
@@ -107,7 +52,7 @@ func (s VerificationServer) submit(code string) (*VerificationResponse, error) {
 	resp, err := s.server.Client().Do(r)
 
 	defer resp.Body.Close()
-	parsed := new(VerificationResponse)
+	parsed := new(parser.VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
 	err = json.Unmarshal(body, &parsed)
 	if err != nil {
@@ -120,7 +65,7 @@ func TestVerifies(t *testing.T) {
 	s := MakeServer()
 	defer s.server.Close()
 	path := "./tests/tutorial/basicAnnotations.gobra"
-	code := readTest(path, t)
+	code := util.ReadTest(path, t)
 	resp, err := s.submit(code)
 	if err != nil {
 		t.Fatalf("error submitting code: %s", err)
@@ -134,7 +79,7 @@ func TestVerifiesFail(t *testing.T) {
 	s := MakeServer()
 	defer s.server.Close()
 	path := "./tests/error/array-length-fail2.gobra"
-	code := readTest(path, t)
+	code := util.ReadTest(path, t)
 	resp, err := s.submit(code)
 	if err != nil {
 		t.Fatalf("error submitting code: %s", err)

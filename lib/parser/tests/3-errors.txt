@@ -1,0 +1,6 @@
+13:26:53.757 [ForkJoinPool-3-worker-3] ERROR viper.gobra.reporting.FileWriterReporter - Error at: </home/ali/Code/gobra-playground/tests/error/multiple.gobra:15:2> Precondition of call foo(y) might not hold.
+Assertion x > 0 might not hold.
+13:26:53.757 [ForkJoinPool-3-worker-2] ERROR viper.gobra.reporting.FileWriterReporter - Error at: </home/ali/Code/gobra-playground/tests/error/multiple.gobra:11:2> Assert might fail.
+Assertion x == y might not hold.
+13:26:53.758 [ForkJoinPool-3-worker-1] ERROR viper.gobra.reporting.FileWriterReporter - Error at: </home/ali/Code/gobra-playground/tests/error/multiple.gobra:5:9> Postcondition might not hold.
+Assertion res > 0 might not hold.
