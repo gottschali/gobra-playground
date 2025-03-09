@@ -50,7 +50,9 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 		errors <- fmt.Errorf("Error marshalling the response to json: %e", err)
 		return
 	}
-	w.Write(data)
+	if _, err := w.Write(data); err != nil {
+		errors <- err
+	}
 	done <- 1
 }
 
@@ -120,13 +122,19 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 	select {
 	case <-time.After(timeout):
 		fmt.Println("timed out")
-		cmd.Process.Kill()
+		if err := cmd.Process.Kill(); err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
 		resp := parser.VerificationResponse{
 			Timeout:  true,
 			Duration: timeout.Seconds(),
 		}
 		data, _ := json.Marshal(resp)
-		w.Write(data)
+		_, err := w.Write(data)
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
 	case err := <-errors:
 		fmt.Printf("internal error: %s\n", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -150,18 +158,21 @@ func cors(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		next.ServeHTTP(w, req)
+	})
+}
 
+func redirect(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.URL.Path = "/compile"
 		next.ServeHTTP(w, req)
 	})
 
 }
-
 func start() {
 	http.Handle("/hello", cors(http.HandlerFunc(Hello)))
 	http.Handle("/verify", cors(http.HandlerFunc(Verify)))
-	playground.Proxy() // /compile
-	http.Handle("/compile2", cors(playground.Proxy()))
-	http.Handle("/compile3", playground.Proxy())
+	http.Handle("/run", cors(redirect(playground.Proxy())))
 
 	fmt.Println("Starting server on http://localhost:", port)
 	err := http.ListenAndServe(":"+port, nil)

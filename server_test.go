@@ -56,6 +56,9 @@ func (s VerificationServer) submit(code string) (*parser.VerificationResponse, e
 	defer resp.Body.Close()
 	parsed := new(parser.VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	err = json.Unmarshal(body, &parsed)
 	if err != nil {
 		return nil, err

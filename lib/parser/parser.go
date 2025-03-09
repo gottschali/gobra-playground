@@ -26,8 +26,6 @@ type VerificationResponse struct {
 }
 
 var error_re = regexp.MustCompile(`- Error at: <(.*):([0-9]+):([0-9]+)> (.*)\n(.*)`)
-var num_error_re = regexp.MustCompile(`\[main\] INFO viper.gobra.Gobra - Gobra has found ([0-9]+) error`)
-var main_error_re = regexp.MustCompile(`^[^0-9][^0-9].*`)
 
 func ParseGobraOutput(output string) (VerificationResponse, error) {
 	r := VerificationResponse{}
