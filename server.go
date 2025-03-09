@@ -139,9 +139,26 @@ func Hello(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(w, "Welcome to the Gobra Playground\n")
 }
 
+// middleware to add cors headers
+func cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+		if req.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, req)
+	})
+
+}
+
 func start() {
-	http.HandleFunc("/hello", Hello)
-	http.HandleFunc("/verify", Verify)
+	http.Handle("/hello", cors(http.HandlerFunc(Hello)))
+	http.Handle("/verify", cors(http.HandlerFunc(Verify)))
 	playground.Proxy() // /compile
 	// http.Handle("/compile2", playground.Proxy())
 
