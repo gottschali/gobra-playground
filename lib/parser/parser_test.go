@@ -13,7 +13,7 @@ var tests = map[string]VerificationResponse{
 	"tests/1-errors.txt": {
 		Verified: false,
 		Errors: []VerificationError{
-			VerificationError{
+			{
 				Message: `Precondition of call Abs(MinInt) might not hold.
 Assertion x != MinInt might not hold.`,
 				Position: Position{29, 8},
@@ -23,17 +23,17 @@ Assertion x != MinInt might not hold.`,
 	"tests/3-errors.txt": {
 		Verified: false,
 		Errors: []VerificationError{
-			VerificationError{
+			{
 				Message: `Precondition of call foo(y) might not hold.
 Assertion x > 0 might not hold.`,
 				Position: Position{15, 2},
 			},
-			VerificationError{
+			{
 				Message: `Assert might fail.
 Assertion x == y might not hold.`,
 				Position: Position{11, 2},
 			},
-			VerificationError{
+			{
 				Message: `Postcondition might not hold.
 Assertion res > 0 might not hold.`,
 				Position: Position{5, 9},
