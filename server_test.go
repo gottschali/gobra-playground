@@ -50,7 +50,9 @@ func (s VerificationServer) submit(code string) (*parser.VerificationResponse, e
 	r.Header.Add("Accept", "application/json")
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := s.server.Client().Do(r)
-
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 	parsed := new(parser.VerificationResponse)
 	body, err := io.ReadAll(resp.Body)
