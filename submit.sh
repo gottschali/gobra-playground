@@ -1,14 +1,13 @@
-#!/bin/bash
+#!/bin/sh
 
-PORT=${PORT:-8090}
-ENDPOINT="http://localhost:$PORT/verify"
+ENDPOINT="http://localhost:${PORT:-8080}/run"
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <path-to-file>"
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <path-to-run> <path-to-file>"
     exit 1
 fi
 
-file_path="$1"
+file_path="$2"
 
 if [ ! -f "$file_path" ]; then
     echo "Error: File '$file_path' not found!"
