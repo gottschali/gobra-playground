@@ -160,7 +160,8 @@ func start() {
 	http.Handle("/hello", cors(http.HandlerFunc(Hello)))
 	http.Handle("/verify", cors(http.HandlerFunc(Verify)))
 	playground.Proxy() // /compile
-	// http.Handle("/compile2", playground.Proxy())
+	http.Handle("/compile2", cors(playground.Proxy()))
+	http.Handle("/compile3", playground.Proxy())
 
 	fmt.Println("Starting server on http://localhost:", port)
 	err := http.ListenAndServe(":"+port, nil)
