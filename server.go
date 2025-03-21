@@ -28,20 +28,22 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 	}
 	elapsed := time.Since(start)
 	temp_dir := cmd.Args[len(cmd.Args)-1]
-	dat, err := os.ReadFile(temp_dir + "/stats.json")
+	jsonStats, err := os.ReadFile(temp_dir + "/stats.json")
 	if err != nil {
 		errors <- fmt.Errorf("Failed to read stats.json, %s", err)
 		return
 	}
-	stats := util.SafeString(dat)
 
 	resp, err := parser.ParseGobraOutput(util.SafeString(stdout))
 	if err != nil {
 		errors <- fmt.Errorf("Error parsing output: %e", err)
 		return
 	}
+	if err := json.Unmarshal(jsonStats, &resp.Stats); err != nil {
+		errors <- fmt.Errorf("Error parsing stats json: %e", err)
+	}
+
 	resp.Duration = elapsed.Seconds()
-	resp.Stats = stats
 	slog.Debug("GobraOutput", "response", resp)
 	data, err := json.Marshal(resp)
 	if err != nil {

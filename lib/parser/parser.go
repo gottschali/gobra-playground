@@ -22,7 +22,7 @@ type VerificationResponse struct {
 	Errors   []VerificationError `json:"errors"`
 	// output: list[error string] `json:"output"`
 	Duration float64 `json:"duration"`
-	Stats    string  `json:"stats"`
+	Stats    []any   `json:"stats"`
 }
 
 var error_re = regexp.MustCompile(`- Error at: <(.*):([0-9]+):([0-9]+)> (.*)\n(.*)`)
