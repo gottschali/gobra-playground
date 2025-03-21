@@ -7,6 +7,7 @@ import (
 	"github.com/gottschali/gobra-playground/lib/parser"
 	"github.com/gottschali/gobra-playground/lib/util"
 	"golang.org/x/tools/playground"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -41,10 +42,7 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 	}
 	resp.Duration = elapsed.Seconds()
 	resp.Stats = stats
-	if dev {
-		fmt.Println(resp)
-	}
-
+	slog.Debug("GobraOutput", "response", resp)
 	data, err := json.Marshal(resp)
 	if err != nil {
 		errors <- fmt.Errorf("Error marshalling the response to json: %e", err)
@@ -73,19 +71,13 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 	// req.Form.Get("version")
 	// req.Form.Get("options")
 
-	if dev {
-		fmt.Println(body)
-	}
-
-	// https://gobyexample.com/writing-files
 	input_path := dir + "/input.gobra"
 	err = os.WriteFile(input_path, []byte(body), 0644)
 	if err != nil {
-		fmt.Println("failed to write gobra file", input_path)
-		return nil, err
+		return nil, fmt.Errorf("Failed to write input file: %s", err)
 	}
 
-	java_args := []string{java_exe, "-jar", "-Xss128m"}
+	java_args := []string{java_exe, "-Xss128m", "-jar"}
 	gobra_args := []string{gobra_jar, "--input", input_path, "--gobraDirectory", dir}
 	args := append(java_args, gobra_args...)
 
@@ -98,30 +90,32 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 }
 
 func Verify(w http.ResponseWriter, req *http.Request) {
-	fmt.Println(req.Method, req.URL, req.Host)
+	slog.Info("request", "method", req.Method, "url", req.URL, "host", req.Host)
+
 	defer req.Body.Close()
 
-	temp_dir, err := os.MkdirTemp("", "sampledir")
+	temp_dir, err := os.MkdirTemp("", "gobra-playground")
 	if err != nil {
-		fmt.Println("Failed to create a temporary directory.")
+		slog.Error("Failed to create a temporary directory.")
 		http.Error(w, "internal error", 500)
 		return
 	}
 	defer os.RemoveAll(temp_dir)
 	cmd, err := buildCommand(req, temp_dir)
 	if err != nil {
-		fmt.Println(err)
+		slog.Any("error", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 
 	done := make(chan int)
 	errors := make(chan error)
 
+	slog.Info("running", "cmd", cmd)
 	go gobra(w, cmd, errors, done)
 	const timeout = 10 * time.Second
 	select {
 	case <-time.After(timeout):
-		fmt.Println("timed out")
+		slog.Info("timeout")
 		if err := cmd.Process.Kill(); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
@@ -136,7 +130,7 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 		}
 	case err := <-errors:
-		fmt.Printf("internal error: %s\n", err)
+		slog.Error("internal error", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	case <-done:
 	}
@@ -174,7 +168,7 @@ func start() {
 	http.Handle("/verify", cors(http.HandlerFunc(Verify)))
 	http.Handle("/run", cors(redirect(playground.Proxy())))
 
-	fmt.Println("Starting server on http://localhost:", port)
+	fmt.Println("Starting server on http://localhost:" + port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		fmt.Println(`ERROR: Failed to start the server.
