@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"github.com/gottschali/gobra-playground/lib/parser"
@@ -13,10 +14,9 @@ import (
 	"time"
 )
 
-var dev = os.Getenv("DEV") != ""
-var gobra_path = os.Getenv("GOBRA_PATH")
-var java_path = os.Getenv("JAVA_PATH")
-var port = os.Getenv("PORT")
+var gobra_jar = os.Getenv("GOBRA_JAR")
+var java_exe = cmp.Or(os.Getenv("JAVA_EXE"), "java")
+var port = cmp.Or(os.Getenv("PORT"), "8090")
 
 func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan int) {
 	start := time.Now()
@@ -85,12 +85,12 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	java_args := []string{java_path, "-jar", "-Xss128m"}
-	gobra_args := []string{gobra_path, "--input", input_path, "-g", dir}
+	java_args := []string{java_exe, "-jar", "-Xss128m"}
+	gobra_args := []string{gobra_jar, "--input", input_path, "--gobraDirectory", dir}
 	args := append(java_args, gobra_args...)
 
 	cmd := &exec.Cmd{
-		Path:  java_path,
+		Path:  java_exe,
 		Args:  args,
 		Stdin: strings.NewReader(""), // or just reader from empty string
 	}
@@ -182,24 +182,13 @@ Check if the port is already in use.`)
 	}
 }
 
-func main() {
-	// http.Handle("/static/", http.StripPrefix("/static/", http.FileServer())))
+func init() {
+	if gobra_jar == "" {
+		fmt.Println("ERROR: GOBRA_JAR environment variable must be set")
+		os.Exit(1)
+	}
+}
 
-	if java_path == "" {
-		fmt.Println("ERROR: JAVA_PATH environment variable must be set")
-		return
-	}
-	if gobra_path == "" {
-		fmt.Println("ERROR: GOBRA_PATH environment variable must be set")
-		return
-	}
-	if dev {
-		fmt.Println("Running in dev mode")
-		fmt.Printf("JAVA_PATH=%s\n", java_path)
-		fmt.Printf("GOBRA_PATH=%s\n", gobra_path)
-	}
-	if port == "" {
-		port = "8090"
-	}
+func main() {
 	start()
 }
