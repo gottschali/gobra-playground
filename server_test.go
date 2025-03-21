@@ -69,7 +69,7 @@ func (s VerificationServer) submit(code string) (*parser.VerificationResponse, e
 func TestVerifies(t *testing.T) {
 	s := MakeServer()
 	defer s.server.Close()
-	path := "./tests/tutorial/basicAnnotations.gobra"
+	path := "./tests/basicAnnotations.gobra"
 	code := util.ReadTest(path, t)
 	resp, err := s.submit(code)
 	if err != nil {
@@ -83,7 +83,7 @@ func TestVerifies(t *testing.T) {
 func TestVerifiesFail(t *testing.T) {
 	s := MakeServer()
 	defer s.server.Close()
-	path := "./tests/error/array-length-fail2.gobra"
+	path := "./tests/array-length-fail2.gobra"
 	code := util.ReadTest(path, t)
 	resp, err := s.submit(code)
 	if err != nil {
