@@ -112,7 +112,7 @@ func Verify(w http.ResponseWriter, req *http.Request) {
 
 	slog.Info("running", "cmd", cmd)
 	go gobra(w, cmd, errors, done)
-	const timeout = 10 * time.Second
+	const timeout = 60 * time.Second
 	select {
 	case <-time.After(timeout):
 		slog.Info("timeout")
