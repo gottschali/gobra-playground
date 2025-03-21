@@ -2,7 +2,7 @@
 [![golangci-lint](https://github.com/gottschali/gobra-playground/actions/workflows/ci.yml/badge.svg)](https://github.com/gottschali/gobra-playground/actions/workflows/ci.yml)
 [![Docker Image](https://github.com/gottschali/gobra-playground/actions/workflows/docker-image.yml/badge.svg)](https://github.com/gottschali/gobra-playground/actions/workflows/docker-image.yml)
 
-Simple HTTP server to verify Go programs with the Gobra verifier.
+Simple HTTP server to verify Go programs with the [Gobra](https://github.com/viperproject/gobra/pkgs/container/gobra) verifier.
 - the Gobra playground exposes the `/verify` endpoint
 - Gobra is run as a subprocess
 - the results are parsed and returned as JSON
@@ -21,6 +21,7 @@ IMAGE=ghcr.io/gottschali/gobra-playground:latest
 docker pull $IMAGE
 docker run -p 8090:8090 --rm $IMAGE
 ```
+
 The playground uses the [latest Gobra version](https://github.com/viperproject/gobra/pkgs/container/gobra).
 
 
@@ -33,6 +34,7 @@ The environment variables `JAVA_EXE` and `GOBRA_JAR` must be set to a java execu
 > ./gobra-playground
 Starting server on http://localhost:8090
 ```
+We can submit a program:
 ``` bash
 INPUT_FILE="./tests/basicAnnotations.gobra"
 ENDPOINT="http://localhost:8090/verify"
@@ -60,3 +62,6 @@ Run all tests with:
 go test -v ./... 
 ```
   
+# License
+
+The scripts and documentation in this project are released under the [Mozilla Public License 2.0](LICENSE.txt).
