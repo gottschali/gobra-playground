@@ -23,6 +23,3 @@ fmt:
 
 clean:
 	-@rm ${OUT}
-
-deploy:
-	ssh void "docker-compose pull; docker-compose up gobra"
