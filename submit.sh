@@ -1,13 +1,13 @@
 #!/bin/sh
+# Test the server by submitting files to verify
+ENDPOINT="http://localhost:8090/verify"
 
-ENDPOINT="http://localhost:${PORT:-8080}/run"
-
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <path-to-run> <path-to-file>"
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <path-to-file>"
     exit 1
 fi
 
-file_path="$2"
+file_path="$1"
 
 if [ ! -f "$file_path" ]; then
     echo "Error: File '$file_path' not found!"
