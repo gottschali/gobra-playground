@@ -73,7 +73,7 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 	// req.Form.Get("version")
 	// req.Form.Get("options")
 
-	input_path := dir + "/input.gobra"
+	input_path := dir + "/input.go"
 	err = os.WriteFile(input_path, []byte(body), 0644)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to write input file: %s", err)
