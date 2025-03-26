@@ -160,6 +160,7 @@ func cors(next http.Handler) http.Handler {
 
 func redirect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.Header.Set("User-Agent", "viperproject/gobra-playground")
 		req.URL.Path = "/compile"
 		next.ServeHTTP(w, req)
 	})
