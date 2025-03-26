@@ -7,11 +7,12 @@ Simple HTTP server to verify Go programs with the [Gobra](https://github.com/vip
 - Gobra is run as a subprocess
 - the results are parsed and returned as JSON
 
+<img align="right" width="200" height="200" src="./summary.svg">
+
 This is a companion project of the [Gobra Book](https://github.com/viperproject/gobra-book).
 After 60 seconds there is a timeout to ensure that a request does not block the server indefinitely.
 Please consider a different way to run Gobra for programs with longer verification time.
 
-<!-- small diagram? -->
 <!-- insert demo -->
 
 ## Deploying
