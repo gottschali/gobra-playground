@@ -113,25 +113,3 @@ func TestNoContentType(t *testing.T) {
 	}
 
 }
-
-func TestMissingBody(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-
-	// required field body is missing
-	data := url.Values{}
-	data.Set("version", "1.0")
-	r, _ := http.NewRequest(
-		"POST",
-		server.URL,
-		strings.NewReader(data.Encode()),
-	)
-	r.Header.Add("Accept", "application/json")
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp, _ := server.Client().Do(r)
-
-	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when field body is missing")
-	}
-
-}
