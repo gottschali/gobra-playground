@@ -28,10 +28,11 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 	}
 	elapsed := time.Since(start)
 	temp_dir := cmd.Args[len(cmd.Args)-1]
+	// the file might not be produced if there is an error
+	// in the typechecking / desugaring phase
 	jsonStats, err := os.ReadFile(temp_dir + "/stats.json")
 	if err != nil {
-		errors <- fmt.Errorf("Failed to read stats.json, %s", err)
-		return
+		jsonStats = []byte("[]")
 	}
 
 	resp, err := parser.ParseGobraOutput(util.SafeString(stdout))
