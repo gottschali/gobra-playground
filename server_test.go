@@ -66,32 +66,28 @@ func (s VerificationServer) submit(code string) (*parser.VerificationResponse, e
 	return parsed, nil
 }
 
-func TestVerifies(t *testing.T) {
-	s := MakeServer()
-	defer s.server.Close()
-	path := "./tests/basicAnnotations.gobra"
-	code := util.ReadTest(path, t)
-	resp, err := s.submit(code)
-	if err != nil {
-		t.Fatalf("error submitting code: %s", err)
-	}
-	if !resp.Verified {
-		t.Errorf("Wrong response: test should have verified: %s", path)
-	}
-}
-
-func TestVerifiesFail(t *testing.T) {
-	s := MakeServer()
-	defer s.server.Close()
-	path := "./tests/array-length-fail2.gobra"
-	code := util.ReadTest(path, t)
-	resp, err := s.submit(code)
-	if err != nil {
-		t.Fatalf("error submitting code: %s", err)
+func TestTable(t *testing.T) {
+	var tests = []struct {
+		path     string
+		verifies bool
+	}{
+		{"tests/basicAnnotations.gobra", true},
+		{"tests/array-length-fail2.gobra", false},
 	}
 
-	if resp.Verified {
-		t.Errorf("Wrong response: test should not have verified")
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			s := MakeServer()
+			defer s.server.Close()
+			code := util.ReadTest(tt.path, t)
+			resp, err := s.submit(code)
+			if err != nil {
+				t.Fatalf("error submitting code: %s", err)
+			}
+			if resp.Verified != tt.verifies {
+				t.Errorf("Wrong verification verdict: %s", tt.path)
+			}
+		})
 	}
 
 }
