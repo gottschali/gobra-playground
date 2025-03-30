@@ -73,9 +73,9 @@ func TestTable(t *testing.T) {
 	}{
 		{"tests/basicAnnotations.gobra", true},
 		{"tests/array-length-fail2.gobra", false},
-		{"tests/no-package.go", false},
-		{"tests/logic-exception.go", false},
-		{"tests/empty.go", false},
+		{"tests/no-package.gobra", false},
+		{"tests/logic-exception.gobra", false},
+		{"tests/empty.gobra", false},
 	}
 
 	for _, tt := range tests {
