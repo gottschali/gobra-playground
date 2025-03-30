@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
 )
@@ -25,26 +26,40 @@ type VerificationResponse struct {
 	Stats    []any   `json:"stats"`
 }
 
-var error_re = regexp.MustCompile(`- Error at: <(.*):([0-9]+):([0-9]+)> (.*)\n(.*)`)
+var numErrorRe = regexp.MustCompile(`Gobra has found ([0-9]+) error\(s\)`)
+var errorWithPosition = regexp.MustCompile(`- Error at: <(.*):([0-9]+):([0-9]+)> (.*)\n(.*)`)
+var errorsBefore = regexp.MustCompile(`ERROR (.*) - (.*)`)
 
 func ParseGobraOutput(output string) (VerificationResponse, error) {
 	r := VerificationResponse{}
 	r.Errors = make([]VerificationError, 0)
-	for _, match := range error_re.FindAllStringSubmatch(output, -1) {
-		line, err := strconv.Atoi(match[2])
-		if err != nil {
-			return r, err
+	if numErrorRe.FindString(output) == "" {
+		for _, match := range errorsBefore.FindAllStringSubmatch(output, -1) {
+			if len(match) < 2 {
+				return r, errors.New("failed to parse error message")
+			}
+			r.Errors = append(r.Errors, VerificationError{
+				Message:  match[2],
+				Position: Position{0, 0},
+			})
 		}
-		char, err := strconv.Atoi(match[3])
-		if err != nil {
-			return r, err
+	} else {
+		for _, match := range errorWithPosition.FindAllStringSubmatch(output, -1) {
+			line, err := strconv.Atoi(match[2])
+			if err != nil {
+				return r, err
+			}
+			char, err := strconv.Atoi(match[3])
+			if err != nil {
+				return r, err
+			}
+			message := match[4] + "\n" + match[5]
+			r.Errors = append(r.Errors, VerificationError{
+				Message:  message,
+				Position: Position{line, char},
+			})
 		}
-		message := match[4] + "\n" + match[5]
-		r.Errors = append(r.Errors, VerificationError{
-			Message:  message,
-			Position: Position{line, char},
-		})
+		r.Verified = len(r.Errors) == 0
 	}
-	r.Verified = len(r.Errors) == 0
 	return r, nil
 }

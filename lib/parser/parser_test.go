@@ -40,6 +40,32 @@ Assertion res > 0 might not hold.`,
 			},
 		},
 	},
+	"tests/violation.txt": {
+		Verified: false,
+		Errors: []VerificationError{
+			{
+				Message:  `An assumption was violated during execution.`,
+				Position: Position{0, 0},
+			},
+			{
+				Message:  `Logic error: Missing package clause in /tmp/gobra-playground3035386246/input.gobra`,
+				Position: Position{0, 0},
+			},
+		},
+	},
+	"tests/logic-exception.txt": {
+		Verified: false,
+		Errors: []VerificationError{
+			{
+				Message:  `An assumption was violated during execution.`,
+				Position: Position{0, 0},
+			},
+			{
+				Message:  `Logic error: This case should be unreachable, but got unknown`,
+				Position: Position{0, 0},
+			},
+		},
+	},
 }
 
 func compare(v1, v2 VerificationResponse) bool {

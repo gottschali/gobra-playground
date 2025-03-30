@@ -28,10 +28,11 @@ func gobra(w http.ResponseWriter, cmd *exec.Cmd, errors chan error, done chan in
 	}
 	elapsed := time.Since(start)
 	temp_dir := cmd.Args[len(cmd.Args)-1]
+	// the file might not be produced if there is an error
+	// in the typechecking / desugaring phase
 	jsonStats, err := os.ReadFile(temp_dir + "/stats.json")
 	if err != nil {
-		errors <- fmt.Errorf("Failed to read stats.json, %s", err)
-		return
+		jsonStats = []byte("[]")
 	}
 
 	resp, err := parser.ParseGobraOutput(util.SafeString(stdout))
@@ -73,7 +74,7 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 	// req.Form.Get("version")
 	// req.Form.Get("options")
 
-	input_path := dir + "/input.gobra"
+	input_path := dir + "/input.go"
 	err = os.WriteFile(input_path, []byte(body), 0644)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to write input file: %s", err)
@@ -160,6 +161,7 @@ func cors(next http.Handler) http.Handler {
 
 func redirect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		req.Header.Set("User-Agent", "viperproject/gobra-playground")
 		req.URL.Path = "/compile"
 		next.ServeHTTP(w, req)
 	})

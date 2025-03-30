@@ -4,3 +4,4 @@ Assertion x > 0 might not hold.
 Assertion x == y might not hold.
 13:26:53.758 [ForkJoinPool-3-worker-1] ERROR viper.gobra.reporting.FileWriterReporter - Error at: </home/ali/Code/gobra-playground/tests/error/multiple.gobra:5:9> Postcondition might not hold.
 Assertion res > 0 might not hold.
+13:26:54.000 [main] INFO viper.gobra.Gobra - Gobra has found 3 error(s)

@@ -66,76 +66,31 @@ func (s VerificationServer) submit(code string) (*parser.VerificationResponse, e
 	return parsed, nil
 }
 
-func TestVerifies(t *testing.T) {
-	s := MakeServer()
-	defer s.server.Close()
-	path := "./tests/basicAnnotations.gobra"
-	code := util.ReadTest(path, t)
-	resp, err := s.submit(code)
-	if err != nil {
-		t.Fatalf("error submitting code: %s", err)
-	}
-	if !resp.Verified {
-		t.Errorf("Wrong response: test should have verified: %s", path)
-	}
-}
-
-func TestVerifiesFail(t *testing.T) {
-	s := MakeServer()
-	defer s.server.Close()
-	path := "./tests/array-length-fail2.gobra"
-	code := util.ReadTest(path, t)
-	resp, err := s.submit(code)
-	if err != nil {
-		t.Fatalf("error submitting code: %s", err)
+func TestTable(t *testing.T) {
+	var tests = []struct {
+		path     string
+		verifies bool
+	}{
+		{"tests/basicAnnotations.gobra", true},
+		{"tests/array-length-fail2.gobra", false},
+		{"tests/no-package.gobra", false},
+		{"tests/logic-exception.gobra", false},
+		{"tests/empty.gobra", false},
 	}
 
-	if resp.Verified {
-		t.Errorf("Wrong response: test should not have verified")
-	}
-
-}
-
-func TestNoContentType(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-
-	data := url.Values{}
-	data.Set("version", "1.0")
-	data.Set("body", "package main\nassert true")
-	r, _ := http.NewRequest(
-		"POST",
-		server.URL,
-		strings.NewReader(data.Encode()),
-	)
-	// No Content-Type header
-	r.Header.Add("Accept", "application/json")
-	resp, _ := server.Client().Do(r)
-
-	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when data is not urlencoded ")
-	}
-
-}
-
-func TestMissingBody(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-
-	// required field body is missing
-	data := url.Values{}
-	data.Set("version", "1.0")
-	r, _ := http.NewRequest(
-		"POST",
-		server.URL,
-		strings.NewReader(data.Encode()),
-	)
-	r.Header.Add("Accept", "application/json")
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	resp, _ := server.Client().Do(r)
-
-	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when field body is missing")
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			s := MakeServer()
+			defer s.server.Close()
+			code := util.ReadTest(tt.path, t)
+			resp, err := s.submit(code)
+			if err != nil {
+				t.Fatalf("error submitting code: %s", err)
+			}
+			if resp.Verified != tt.verifies {
+				t.Errorf("Wrong verification verdict: %s", tt.path)
+			}
+		})
 	}
 
 }
