@@ -1,8 +1,8 @@
-package main
+package absfail
 
 // ##(--overflow)
 
-// @ ensures res >= 0 && (res == x || res == -x)
+ensures res >= 0 && (res == x || res == -x)
 func Abs(x int32) (res int32) {
 	if x < 0 {
 		return -x

@@ -63,17 +63,6 @@ func buildCommand(req *http.Request, dir string) (*exec.Cmd, error) {
 		return nil, fmt.Errorf("Failed to parse form: %s", err)
 	}
 	body := req.Form.Get("body")
-	// TODO: allow more options
-	// probably as json in options form field
-	// For gobra consider
-	// --overflow
-	// --eraseGhost
-	// --backend
-	// See java -jar gobra.jar -h
-	// or the gobra ci action for args
-	// req.Form.Get("version")
-	// req.Form.Get("options")
-
 	input_path := dir + "/input.go"
 	err = os.WriteFile(input_path, []byte(body), 0644)
 	if err != nil {
