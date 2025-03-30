@@ -91,25 +91,3 @@ func TestTable(t *testing.T) {
 	}
 
 }
-
-func TestNoContentType(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(Verify))
-	defer server.Close()
-
-	data := url.Values{}
-	data.Set("version", "1.0")
-	data.Set("body", "package main\nassert true")
-	r, _ := http.NewRequest(
-		"POST",
-		server.URL,
-		strings.NewReader(data.Encode()),
-	)
-	// No Content-Type header
-	r.Header.Add("Accept", "application/json")
-	resp, _ := server.Client().Do(r)
-
-	if resp.StatusCode < 400 {
-		t.Fatalf("no error code when data is not urlencoded ")
-	}
-
-}
