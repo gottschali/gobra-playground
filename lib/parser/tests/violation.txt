@@ -1,0 +1,3 @@
+11:40:37.368 [main] ERROR viper.gobra.GobraRunner$ - An assumption was violated during execution.
+11:40:37.370 [main] ERROR viper.gobra.GobraRunner$ - Logic error: Missing package clause in /tmp/gobra-playground3035386246/input.gobra
+viper.gobra.util.Violation$LogicException: Logic error: Missing package clause in /tmp/gobra-playground3035386246/input.gobra
